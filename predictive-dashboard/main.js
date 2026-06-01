@@ -1,8 +1,9 @@
 import Chart from 'chart.js/auto';
 
-const API_BASE = window.location.port === '5173'
-  ? 'http://localhost:9091/api/predictive'
-  : '/api/predictive';
+const API_BASE = import.meta.env.VITE_API_URL
+  || (window.location.port === '5173'
+    ? 'http://localhost:9091/api/predictive'
+    : '/api/predictive');
 
 // ===== DOM REFS =====
 const sidebar = document.getElementById('sidebar');
