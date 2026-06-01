@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="EduInsight AI — AI-powered predictive student analytics dashboard" />
+  <title>EduInsight AI — Student Analytics</title>
+  <link rel="stylesheet" href="./style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
+    rel="stylesheet">
+</head>
+
+<body>
+  <div class="app">
+    <!-- ===== SIDEBAR ===== -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-brand">
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 10v6M2 10l10-5 10 5-10 5z" />
+            <path d="M6 12v5c0 1.66 2.69 3 6 3s6-1.34 6-3v-5" />
+          </svg>
+        </div>
+        <div class="brand-text">
+          <strong>EduInsight</strong>
+          <small>AI Analytics</small>
+        </div>
+      </div>
+      <nav class="sidebar-nav">
+        <a class="nav-link active" data-view="dashboard">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="7" rx="1" />
+            <rect x="14" y="3" width="7" height="7" rx="1" />
+            <rect x="3" y="14" width="7" height="7" rx="1" />
+            <rect x="14" y="14" width="7" height="7" rx="1" />
+          </svg>
+          <span>Dashboard</span>
+        </a>
+
+        <a class="nav-link" data-view="examSheets">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
+          </svg>
+          <span>Answer Sheets</span>
+        </a>
+
+      </nav>
+      <div class="sidebar-user">
+        <div class="user-avatar-sm">AD</div>
+        <div class="user-info-sm">
+          <strong>Admin User</strong>
+          <small>admin@school.edu</small>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ===== MAIN ===== -->
+    <div class="main-wrapper">
+      <!-- Topbar -->
+      <header class="topbar">
+        <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="3" y1="12" x2="21" y2="12" />
+            <line x1="3" y1="6" x2="21" y2="6" />
+            <line x1="3" y1="18" x2="21" y2="18" />
+          </svg>
+        </button>
+        <div class="search-box">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+          <input type="search" placeholder="Search students, classes, reports…" id="globalSearch">
+        </div>
+        <div class="topbar-actions">
+          <button class="topbar-btn" title="Notifications">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+              <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+            </svg>
+            <span class="notif-dot"></span>
+          </button>
+          <div class="topbar-user">
+            <div class="user-avatar-xs">AD</div>
+          </div>
+        </div>
+      </header>
+
+      <!-- Content -->
+      <main class="content" id="mainContent">
+
+        <!-- ===== UPLOAD PANEL ===== -->
+        <section class="view-panel active" id="viewDashboard">
+          <div class="page-header">
+            <div>
+              <h1>Predictive Analysis</h1>
+              <p class="page-subtitle">Upload student data for AI-powered performance insights and risk assessment</p>
+            </div>
+            <div class="header-badges">
+              <span class="status-badge live"><span class="pulse-dot"></span> AI Engine Active</span>
+            </div>
+          </div>
+
+          <!-- Upload Zone -->
+          <div class="upload-card glass-card" id="uploadCard">
+            <form id="uploadForm" class="upload-inner">
+              <div class="dropzone" id="dropzone">
+                <div class="dropzone-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="17 8 12 3 7 8" />
+                    <line x1="12" y1="3" x2="12" y2="15" />
+                  </svg>
+                </div>
+                <h3>Drop files here or <span class="link-text">browse</span></h3>
+                <p>Report card images, CSV, JSON, or text files</p>
+                <div class="file-types">
+                  <span class="type-pill">.jpg / .png</span>
+                  <span class="type-pill">.pdf</span>
+                  <span class="type-pill">.csv</span>
+                  <span class="type-pill">.json</span>
+                  <span class="type-pill">.txt</span>
+                </div>
+                <input id="fileInput" type="file" accept="image/*,.pdf,.txt,.csv,.json" required hidden>
+              </div>
+              <div class="upload-footer" id="uploadFooter" style="display:none">
+                <div class="selected-file">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="file-icon">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                    <polyline points="14 2 14 8 20 8" />
+                  </svg>
+                  <span id="selectedFileName">file.csv</span>
+                  <button type="button" class="clear-btn" id="clearFile">&times;</button>
+                </div>
+                <button type="submit" class="btn-primary" id="analyzeBtn">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                  </svg>
+                  Analyze with AI
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Confidence Warning Banner -->
+          <div class="confidence-warning" id="confidenceWarning" style="display:none">
+            <div class="warning-icon">⚠️</div>
+            <div class="warning-text">
+              <strong>Low AI Confidence</strong>
+              <p>Handwriting was difficult to read. This analysis may contain inaccuracies and should be reviewed by a teacher before use.</p>
+            </div>
+          </div>
+
+          <!-- Error Banner -->
+          <div class="error-banner" id="errorBanner" style="display:none"></div>
+
+          <!-- Loading -->
+          <div class="loading-overlay" id="loadingOverlay" style="display:none">
+            <div class="loading-content glass-card">
+              <div class="spinner"></div>
+              <h3>Analyzing student data…</h3>
+              <p>AI is extracting performance insights from your file</p>
+              <div class="progress-track">
+                <div class="progress-fill" id="progressFill"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ===== RESULTS SECTION ===== -->
+          <section class="results-section" id="resultsSection" style="display:none">
+
+            <!-- Student Header -->
+            <div class="student-header glass-card">
+              <div class="student-profile">
+                <div class="student-avatar" id="studentAvatar">AJ</div>
+                <div>
+                  <h2 id="studentName">Alex Johnson</h2>
+                  <div class="student-meta">
+                    <span class="meta-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+                        <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+                      </svg> Class: <strong id="studentClass">10-A</strong></span>
+                    <span class="meta-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="2" y="5" width="20" height="14" rx="2" />
+                        <line x1="2" y1="10" x2="22" y2="10" />
+                      </svg> Roll: <strong id="studentRoll">101</strong></span>
+                  </div>
+                </div>
+              </div>
+              <div class="score-gauge">
+                <svg class="gauge-ring" viewBox="0 0 120 120">
+                  <circle class="gauge-bg" cx="60" cy="60" r="52" fill="none" stroke-width="10" />
+                  <circle class="gauge-fill" id="gaugeRing" cx="60" cy="60" r="52" fill="none" stroke-width="10"
+                    stroke-dasharray="326.73" stroke-dashoffset="326.73" stroke-linecap="round"
+                    transform="rotate(-90 60 60)" />
+                </svg>
+                <div class="gauge-label">
+                  <span class="gauge-value" id="gaugeValue">0%</span>
+                  <small class="gauge-grade" id="gaugeGrade">Grade</small>
+                </div>
+              </div>
+              <div class="header-actions">
+                <button class="btn-outline" id="exportBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7 10 12 15 17 10" />
+                    <line x1="12" y1="15" x2="12" y2="3" />
+                  </svg> Export</button>
+                <button class="btn-outline" id="newAnalysisBtn"><svg viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2">
+                    <polyline points="23 4 23 10 17 10" />
+                    <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+                  </svg> New</button>
+              </div>
+            </div>
+
+            <!-- KPI Grid -->
+            <div class="kpi-grid">
+              <div class="kpi-card glass-card" id="kpiRiskCard">
+                <div class="kpi-icon-wrap risk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                  </svg></div>
+                <div class="kpi-body">
+                  <span class="kpi-label">Risk Level</span>
+                  <strong class="kpi-value" id="kpiRisk">—</strong>
+                </div>
+              </div>
+            </div>
+
+            <!-- Tab Bar -->
+            <div class="tab-bar">
+              <button class="tab active" data-tab="academic">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="18" y1="20" x2="18" y2="10" />
+                  <line x1="12" y1="20" x2="12" y2="4" />
+                  <line x1="6" y1="20" x2="6" y2="14" />
+                </svg>
+                Performance
+              </button>
+
+              <button class="tab" data-tab="risk">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                  <line x1="12" y1="9" x2="12" y2="13" />
+                  <line x1="12" y1="17" x2="12.01" y2="17" />
+                </svg>
+                Risk Analysis
+              </button>
+              <button class="tab" data-tab="insights">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                </svg>
+                AI Insights
+              </button>
+
+            </div>
+
+            <!-- Tab Panels -->
+            <div class="tab-panels">
+              <!-- Academic -->
+              <div class="tab-panel active" id="panel-academic">
+                <div class="charts-row">
+                  <div class="chart-card glass-card">
+                    <div class="chart-header">
+                      <h3>Subject Performance</h3>
+                      <p>Score breakdown by subject</p>
+                    </div>
+                    <div class="chart-body"><canvas id="subjectChart"></canvas></div>
+                  </div>
+                  <div class="chart-card glass-card">
+                    <div class="chart-header">
+                      <h3>Performance Radar</h3>
+                      <p>Multi-dimensional analysis</p>
+                    </div>
+                    <div class="chart-body"><canvas id="radarChart"></canvas></div>
+                  </div>
+                </div>
+                <div class="subject-table glass-card" id="subjectTableCard">
+                  <div class="chart-header">
+                    <h3>Subject Details</h3>
+                  </div>
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>Subject</th>
+                        <th>Score</th>
+                        <th>Grade</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody id="subjectTableBody"></tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Risk -->
+              <div class="tab-panel" id="panel-risk">
+                <div class="charts-row">
+                  <div class="chart-card glass-card">
+                    <div class="chart-header">
+                      <h3>Risk Distribution</h3>
+                      <p>Overall risk assessment breakdown</p>
+                    </div>
+                    <div class="chart-body"><canvas id="riskChart"></canvas></div>
+                  </div>
+                  <div class="risk-factors glass-card">
+                    <div class="chart-header">
+                      <h3>Risk Factors</h3>
+                    </div>
+                    <div class="factor-list" id="riskFactorList">
+                      <div class="factor-item low">
+                        <div class="factor-bar" style="--w:12%"></div><span>Dropout Risk</span><strong>12%</strong>
+                      </div>
+                      <div class="factor-item low">
+                        <div class="factor-bar" style="--w:18%"></div><span>Academic Fail</span><strong>18%</strong>
+                      </div>
+                      <div class="factor-item low">
+                        <div class="factor-bar" style="--w:15%"></div><span>Engagement Drop</span><strong>15%</strong>
+                      </div>
+                      <div class="factor-item low">
+                        <div class="factor-bar" style="--w:22%"></div><span>Stress/Burnout</span><strong>22%</strong>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <!-- AI Insights -->
+              <div class="tab-panel" id="panel-insights">
+                <div class="insights-grid">
+                  <div class="insight-card glass-card strengths">
+                    <div class="insight-header"><span class="insight-icon">💪</span>
+                      <h3>Strengths</h3>
+                    </div>
+                    <ul id="strengthsList"></ul>
+                  </div>
+                  <div class="insight-card glass-card improvements">
+                    <div class="insight-header"><span class="insight-icon">📈</span>
+                      <h3>Areas for Improvement</h3>
+                    </div>
+                    <ul id="improvementsList"></ul>
+                  </div>
+                  <div class="insight-card glass-card full-width recommendations">
+                    <div class="insight-header"><span class="insight-icon">💡</span>
+                      <h3>AI Recommendations</h3>
+                    </div>
+                    <ul id="recommendationsList"></ul>
+                  </div>
+                  <div class="insight-card glass-card full-width summary">
+                    <div class="insight-header"><span class="insight-icon">🤖</span>
+                      <h3>Performance Summary</h3>
+                    </div>
+                    <p id="summaryText" class="summary-body"></p>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </section>
+        </section>
+
+        <!-- Placeholder views -->
+        <section class="view-panel" id="viewStudents">
+          <div class="placeholder-view glass-card"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="1.5" class="placeholder-icon">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+            </svg>
+            <h2>Student Management</h2>
+            <p>Individual student profiles, comparison tools, and historical tracking — coming soon.</p>
+          </div>
+        </section>
+        <section class="view-panel" id="viewAnalytics">
+          <div class="placeholder-view glass-card"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="1.5" class="placeholder-icon">
+              <line x1="18" y1="20" x2="18" y2="10" />
+              <line x1="12" y1="20" x2="12" y2="4" />
+              <line x1="6" y1="20" x2="6" y2="14" />
+            </svg>
+            <h2>Advanced Analytics</h2>
+            <p>Class-level comparisons, cohort analysis, and trend forecasting — coming soon.</p>
+          </div>
+        </section>
+
+        <!-- ===== EXAM ANSWER SHEET PAGE ===== -->
+        <section class="view-panel" id="viewExamSheets">
+          <div class="page-header">
+            <div>
+              <h1>Answer Sheet Analysis</h1>
+              <p class="page-subtitle">Upload student exam answer sheets for AI-powered conceptual analysis (quarterly)</p>
+            </div>
+            <div class="header-badges">
+              <span class="status-badge live"><span class="pulse-dot"></span> AI Vision Active</span>
+            </div>
+          </div>
+
+          <!-- Exam Upload Zone -->
+          <div class="upload-card glass-card" id="examUploadCard">
+            <form id="examUploadForm" class="upload-inner">
+              <div class="dropzone" id="examDropzone">
+                <div class="dropzone-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
+                  </svg>
+                </div>
+                <h3>Drop answer sheet here or <span class="link-text">browse</span></h3>
+                <p>Upload a photo or scan of the student’s handwritten exam paper</p>
+                <div class="file-types">
+                  <span class="type-pill">.jpg / .png</span>
+                  <span class="type-pill">.pdf</span>
+                </div>
+                <input id="examFileInput" type="file" accept="image/*,.pdf" required hidden>
+              </div>
+              <div class="upload-footer" id="examUploadFooter" style="display:none">
+                <div class="selected-file">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="file-icon">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                    <polyline points="14 2 14 8 20 8" />
+                  </svg>
+                  <span id="examSelectedFileName">file.jpg</span>
+                  <button type="button" class="clear-btn" id="examClearFile">&times;</button>
+                </div>
+                <button type="submit" class="btn-primary" id="examAnalyzeBtn">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
+                  </svg>
+                  Scan Answer Sheet
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Exam Confidence Warning -->
+          <div class="confidence-warning" id="examConfidenceWarning" style="display:none">
+            <div class="warning-icon">⚠️</div>
+            <div class="warning-text">
+              <strong>Low AI Confidence</strong>
+              <p>Handwriting was difficult to read. This analysis may contain inaccuracies and should be reviewed by a teacher.</p>
+            </div>
+          </div>
+
+          <!-- Exam Error Banner -->
+          <div class="error-banner" id="examErrorBanner" style="display:none"></div>
+
+          <!-- Exam Loading -->
+          <div class="loading-overlay" id="examLoadingOverlay" style="display:none">
+            <div class="loading-content glass-card">
+              <div class="spinner"></div>
+              <h3>Scanning answer sheet…</h3>
+              <p>AI is reading handwritten answers and analyzing conceptual understanding</p>
+              <div class="progress-track">
+                <div class="progress-fill" id="examProgressFill"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Exam Results -->
+          <section class="results-section" id="examResultsSection" style="display:none">
+            <div class="student-header glass-card">
+              <div class="student-profile">
+                <div class="student-avatar" id="examStudentAvatar">PS</div>
+                <div>
+                  <h2 id="examStudentName">Student</h2>
+                  <div class="student-meta">
+                    <span class="meta-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+                        <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+                      </svg> Class: <strong id="examStudentClass">N/A</strong></span>
+                    <span class="meta-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="2" y="5" width="20" height="14" rx="2" />
+                        <line x1="2" y1="10" x2="22" y2="10" />
+                      </svg> Roll: <strong id="examStudentRoll">N/A</strong></span>
+                  </div>
+                </div>
+              </div>
+              <div class="header-actions">
+                <button class="btn-outline" id="examExportBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg> Export</button>
+                <button class="btn-outline" id="examNewBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" /></svg> New</button>
+              </div>
+            </div>
+
+            <div class="exam-analysis-grid">
+              <div class="exam-card glass-card full-width">
+                <div class="exam-header">
+                  <span class="exam-icon">📝</span>
+                  <h3>Handwriting & Presentation</h3>
+                </div>
+                <div class="exam-meter">
+                  <div class="meter-track"><div class="meter-fill" id="handwritingMeter" style="width:0%"></div></div>
+                  <span class="meter-label" id="handwritingLabel">--</span>
+                </div>
+                <p id="handwritingNotes" class="exam-notes"></p>
+              </div>
+              <div class="exam-card glass-card">
+                <div class="exam-header">
+                  <span class="exam-icon">✅</span>
+                  <h3>Conceptual Strengths</h3>
+                </div>
+                <ul id="conceptStrengthsList"></ul>
+              </div>
+              <div class="exam-card glass-card">
+                <div class="exam-header">
+                  <span class="exam-icon">❌</span>
+                  <h3>Conceptual Gaps</h3>
+                </div>
+                <ul id="conceptGapsList"></ul>
+              </div>
+              <div class="exam-card glass-card full-width">
+                <div class="exam-header">
+                  <span class="exam-icon">🎯</span>
+                  <h3>Detailed Answer Analysis</h3>
+                </div>
+                <p id="answerAnalysisText" class="summary-body"></p>
+              </div>
+              <div class="exam-card glass-card full-width">
+                <div class="exam-header">
+                  <span class="exam-icon">📊</span>
+                  <h3>Quarterly Progress Note</h3>
+                </div>
+                <p id="quarterlyNote" class="summary-body">This exam analysis is part of the quarterly student assessment cycle. Upload answer sheets every 3 months to track conceptual progress over time.</p>
+              </div>
+            </div>
+          </section>
+        </section>
+
+
+      </main>
+    </div>
+  </div>
+  <script type="module" src="/main.js"></script>
+</body>
+
+</html>

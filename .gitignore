@@ -1,0 +1,16 @@
+# Node
+predictive-dashboard/node_modules/
+predictive-dashboard/dist/
+predictive-dashboard/.env
+
+# Maven / Java
+ssms-predictive-module/target/
+ssms-predictive-module/*.jar
+ssms-predictive-module/*.war
+
+# IDEs & System
+.idea/
+.vscode/
+*.class
+.DS_Store
+Thumbs.db

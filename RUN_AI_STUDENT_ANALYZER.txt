@@ -1,0 +1,117 @@
+AI STUDENT ANALYZER - QUICK RUN GUIDE
+
+WHAT THIS APP IS FOR
+This is a standalone AI student analysis app.
+It lets a user upload student-related files such as:
+- report card images
+- attendance files
+- behavior notes
+- CSV files
+- JSON files
+- TXT files
+
+The backend analyzes the uploaded file and returns student insights such as:
+- overall score
+- grade
+- attendance/engagement signals
+- risk level
+- AI confidence
+- chart data for the frontend
+
+If no AI API key is configured, it returns mock/demo analysis data.
+
+
+APP FOLDERS
+Backend folder:
+C:\Users\sagac\Downloads\NF_SSMS-API\ssms-predictive-module
+
+Frontend folder:
+C:\Users\sagac\Downloads\NF_SSMS-API\predictive-dashboard
+
+Main old/full SSMS project folder, not needed for standalone analyzer:
+C:\Users\sagac\Downloads\NF_SSMS-API\NF_SSMS-API
+
+
+REQUIREMENTS
+1. Java 17
+2. Node.js and npm
+3. Internet connection for first Maven/npm dependency download
+
+
+HOW TO RUN
+
+STEP 1 - START BACKEND
+Open PowerShell terminal 1 and run:
+
+cd C:\Users\sagac\Downloads\NF_SSMS-API\ssms-predictive-module
+../NF_SSMS-API/mvnw spring-boot:run
+
+Backend URL:
+http://localhost:9091
+
+Keep this terminal open.
+
+
+STEP 2 - START FRONTEND
+Open PowerShell terminal 2 and run:
+
+cd C:\Users\sagac\Downloads\NF_SSMS-API\predictive-dashboard
+npm install
+npm run dev
+
+Frontend URL:
+http://localhost:5173
+
+
+STEP 3 - USE THE APP
+Open this in browser:
+http://localhost:5173
+
+Then upload a file and click:
+Analyze With AI
+
+
+OPTIONAL - USE REAL AI API
+Before starting the backend, set your API key:
+
+$env:PREDICTIVE_AI_API_KEY="your-api-key-here"
+$env:PREDICTIVE_AI_MODEL="gpt-4o"
+
+Then start the backend again.
+
+If no API key is set, the backend returns mock/demo data.
+
+
+COMMON ISSUE - PORT 9091 ALREADY USED
+If backend fails because port 9091 is already in use, run:
+
+netstat -ano | findstr :9091
+
+Then stop the shown PID:
+
+Stop-Process -Id <PID>
+
+Then start backend again.
+
+
+IMPORTANT FILES
+Frontend title/text:
+C:\Users\sagac\Downloads\NF_SSMS-API\predictive-dashboard\index.html
+
+Frontend API call logic:
+C:\Users\sagac\Downloads\NF_SSMS-API\predictive-dashboard\main.js
+
+Frontend styling:
+C:\Users\sagac\Downloads\NF_SSMS-API\predictive-dashboard\style.css
+
+Backend API controller:
+C:\Users\sagac\Downloads\NF_SSMS-API\ssms-predictive-module\src\main\java\com\walkouttech\ssms\controller\predictive\PredictiveAnalysisController.java
+
+Backend service logic:
+C:\Users\sagac\Downloads\NF_SSMS-API\ssms-predictive-module\src\main\java\com\walkouttech\ssms\serviceImpl\predictive\PredictiveAnalysisServiceImpl.java
+
+Backend AI client:
+C:\Users\sagac\Downloads\NF_SSMS-API\ssms-predictive-module\src\main\java\com\walkouttech\ssms\serviceImpl\predictive\AiClientServiceImpl.java
+
+Backend config:
+C:\Users\sagac\Downloads\NF_SSMS-API\ssms-predictive-module\src\main\resources\application.properties
