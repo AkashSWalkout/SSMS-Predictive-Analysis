@@ -115,24 +115,20 @@ public class AiClientServiceImpl implements AiClientService {
             VisionApiRequestDTO.MessageDTO systemMessage = new VisionApiRequestDTO.MessageDTO();
             systemMessage.setRole("system");
             systemMessage.setContent(
-                    "You are an expert AI that extracts student report card data from images, "
-                            + "including handwritten, low-quality, blurry, or photographed report cards. "
-                            + "You MUST try your best to read ALL text, even if handwriting is messy. "
+                    "You are an expert AI that extracts student report card data from images. "
                             + "IMPORTANT RULES: "
-                            + "1) If you see letter grades (A+, A, B+, B, C, D, F etc.), convert them to numeric scores: "
-                            + "A+=95, A=90, A-=87, B+=83, B=78, B-=75, C+=73, C=68, C-=65, D=55, F=30. "
-                            + "2) NEVER return score: 0 unless the student truly scored zero. If you can see ANY grade, convert it. "
-                            + "3) If you cannot read a value, make your best educated guess rather than returning 0. "
-                            + "4) If attendance data is not visible, estimate: totalDays=200, presentDays=170, percentage=85. "
-                            + "5) If studentName is not visible, use 'Student' as the name. "
+                            + "1) EXTRACT EXACT VALUES: Do NOT recalculate or average scores yourself. Read the EXACT numbers printed on the card. "
+                            + "2) If there is a 'Marks in %' column, use those exact numbers for the subject scores (e.g. if it says 73%, the score is 73). "
+                            + "3) For the overallPercentage, find the final Total row. If it says 'Total 200 163 80%', the overallPercentage is exactly 80. Do NOT average the subject scores to find the overall percentage. "
+                            + "4) If you see letter grades, use them. If only numbers are present, derive the grade strictly based on the number. "
+                            + "5) Return ONLY valid JSON. "
                             + "Return a JSON object with: "
                             + "studentName (string), className (string), rollNumber (string), "
                             + "overallPercentage (number 0-100), overallGrade (string), "
                             + "subjects (array of {name, score (NUMBER 0-100), grade, totalMarks:100}), "
                             + "attendance ({totalDays, presentDays, percentage}), "
                             + "overallRiskLevel (LOW|MODERATE|HIGH|CRITICAL), "
-                            + "confidence (0.0-1.0), performanceSummary (string), recommendations (string). "
-                            + "Return ONLY valid JSON, no markdown fences.");
+                            + "confidence (0.0-1.0), performanceSummary (string), recommendations (string).");
 
             VisionApiRequestDTO.MessageDTO userMessage = new VisionApiRequestDTO.MessageDTO();
             userMessage.setRole("user");
