@@ -20,7 +20,6 @@ const loadingOverlay = document.getElementById('loadingOverlay');
 const progressFill = document.getElementById('progressFill');
 const resultsSection = document.getElementById('resultsSection');
 const uploadCard = document.getElementById('uploadCard');
-const newAnalysisBtn = document.getElementById('newAnalysisBtn');
 const exportBtn = document.getElementById('exportBtn');
 
 const charts = {};
@@ -102,8 +101,6 @@ uploadForm.addEventListener('submit', async (e) => {
   }
 });
 
-// ===== NEW ANALYSIS =====
-newAnalysisBtn.addEventListener('click', resetToUpload);
 function resetToUpload() {
   resultsSection.style.display = 'none';
   uploadCard.style.display = 'block';
@@ -393,7 +390,6 @@ function renderExamAnalysis(a) {
   const examProgressFill = document.getElementById('examProgressFill');
   const examErrorBanner = document.getElementById('examErrorBanner');
   const examResultsSection = document.getElementById('examResultsSection');
-  const examNewBtn = document.getElementById('examNewBtn');
   const examExportBtn = document.getElementById('examExportBtn');
 
   if (!examDropzone) return; // guard
@@ -481,14 +477,6 @@ function renderExamAnalysis(a) {
     confWarning.style.display = conf < 60 ? 'flex' : 'none';
   }
 
-  // New analysis
-  examNewBtn.addEventListener('click', () => {
-    examResultsSection.style.display = 'none';
-    examUploadCard.style.display = 'block';
-    examUploadFooter.style.display = 'none';
-    examFileInput.value = '';
-    document.getElementById('examConfidenceWarning').style.display = 'none';
-  });
 
   // Export
   examExportBtn.addEventListener('click', () => {
@@ -498,5 +486,159 @@ function renderExamAnalysis(a) {
     const a = document.createElement('a');
     a.href = url; a.download = `exam_analysis_${lastExamAnalysis.studentName || 'report'}.json`; a.click();
     URL.revokeObjectURL(url);
+  });
+})();
+
+// ===== STUDENT ANALYTICS =====
+(function initStudentAnalytics() {
+  const tableBody = document.getElementById('analyticsTableBody');
+  const listSection = document.getElementById('studentAnalyticsList');
+  const detailSection = document.getElementById('studentAnalyticsDetail');
+  const backToListBtn = document.getElementById('backToListBtn');
+  const compareStudentName = document.getElementById('compareStudentName');
+  const compareOldScore = document.getElementById('compareOldScore');
+  const compareOldGrade = document.getElementById('compareOldGrade');
+  const compareDropzone = document.getElementById('compareDropzone');
+  const compareFileInput = document.getElementById('compareFileInput');
+  const compareUploadFooter = document.getElementById('compareUploadFooter');
+  const compareUploadForm = document.getElementById('compareUploadForm');
+  const compareLoadingOverlay = document.getElementById('compareLoadingOverlay');
+  const compareResultCard = document.getElementById('compareResultCard');
+  const oldScoreDisplay = document.getElementById('oldScoreDisplay');
+  const newScoreDisplay = document.getElementById('newScoreDisplay');
+  const improvementDisplay = document.getElementById('improvementDisplay');
+
+  if (!tableBody) return;
+
+  let scansCache = [];
+  let selectedScan = null;
+
+  // Fetch scans when the Student Analytics nav is clicked
+  document.querySelectorAll('.nav-link').forEach(link => {
+    link.addEventListener('click', () => {
+      if (link.dataset.view === 'studentAnalytics') {
+        fetchScans();
+      }
+    });
+  });
+
+  async function fetchScans() {
+    tableBody.innerHTML = '<tr><td colspan="6" style="padding:2rem; text-align:center; color:var(--text-muted);">Loading...</td></tr>';
+    try {
+      const res = await fetch(`${API_BASE}/scans`);
+      if (!res.ok) throw new Error('Failed to fetch scans');
+      scansCache = await res.json();
+      renderTable(scansCache);
+    } catch (err) {
+      tableBody.innerHTML = `<tr><td colspan="6" style="padding:2rem; text-align:center; color:#ef4444;">${err.message}</td></tr>`;
+    }
+  }
+
+  function renderTable(scans) {
+    if (!scans || scans.length === 0) {
+      tableBody.innerHTML = '<tr><td colspan="6" style="padding:2rem; text-align:center; color:var(--text-muted);">No scanned reports found. Upload a report card from the Dashboard first.</td></tr>';
+      return;
+    }
+    tableBody.innerHTML = scans.map((s, i) => {
+      const date = s.createdAt ? new Date(s.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A';
+      const score = s.overallPercentage != null ? s.overallPercentage.toFixed(1) + '%' : 'N/A';
+      return `<tr style="border-bottom:1px solid rgba(255,255,255,0.05); cursor:pointer;" class="analytics-row">
+        <td style="padding:1rem; font-weight:500;">${s.studentName || 'Unknown'}</td>
+        <td style="padding:1rem;">${s.className || 'N/A'}</td>
+        <td style="padding:1rem;">${s.rollNumber || 'N/A'}</td>
+        <td style="padding:1rem;">${date}</td>
+        <td style="padding:1rem;">${score}</td>
+        <td style="padding:1rem;">
+          <button class="btn-outline compare-btn" data-index="${i}" style="font-size:0.8rem; padding:0.4rem 0.8rem;">Compare</button>
+        </td>
+      </tr>`;
+    }).join('');
+
+    // Attach compare buttons
+    tableBody.querySelectorAll('.compare-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const idx = parseInt(btn.dataset.index);
+        openCompare(scansCache[idx]);
+      });
+    });
+  }
+
+  function openCompare(scan) {
+    selectedScan = scan;
+    listSection.style.display = 'none';
+    detailSection.style.display = 'block';
+    compareResultCard.style.display = 'none';
+    compareUploadFooter.style.display = 'none';
+    compareLoadingOverlay.style.display = 'none';
+    compareFileInput.value = '';
+
+    compareStudentName.textContent = scan.studentName || 'Unknown Student';
+    const oldScore = scan.overallPercentage != null ? scan.overallPercentage.toFixed(1) : '--';
+    compareOldScore.textContent = oldScore;
+    compareOldGrade.textContent = scan.overallGrade || '--';
+  }
+
+  backToListBtn.addEventListener('click', () => {
+    detailSection.style.display = 'none';
+    listSection.style.display = 'block';
+  });
+
+  // File selection for compare
+  compareDropzone.addEventListener('click', () => compareFileInput.click());
+  compareDropzone.addEventListener('dragover', e => { e.preventDefault(); compareDropzone.classList.add('dragover'); });
+  compareDropzone.addEventListener('dragleave', () => compareDropzone.classList.remove('dragover'));
+  compareDropzone.addEventListener('drop', e => {
+    e.preventDefault();
+    compareDropzone.classList.remove('dragover');
+    if (e.dataTransfer.files.length) {
+      compareFileInput.files = e.dataTransfer.files;
+      compareUploadFooter.style.display = 'flex';
+    }
+  });
+  compareFileInput.addEventListener('change', () => {
+    if (compareFileInput.files.length) {
+      compareUploadFooter.style.display = 'flex';
+    }
+  });
+
+  // Submit comparison
+  compareUploadForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!compareFileInput.files.length || !selectedScan) return;
+
+    compareLoadingOverlay.style.display = 'flex';
+    compareResultCard.style.display = 'none';
+
+    try {
+      const formData = new FormData();
+      formData.append('file', compareFileInput.files[0]);
+
+      const res = await fetch(`${API_BASE}/analyze-image`, { method: 'POST', body: formData });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.message || 'Analysis failed');
+      }
+      const newAnalysis = await res.json();
+
+      const oldScore = selectedScan.overallPercentage || 0;
+      const newScore = newAnalysis.overallPercentage || 0;
+      const improvement = newScore - oldScore;
+
+      oldScoreDisplay.textContent = oldScore.toFixed(1) + '%';
+      newScoreDisplay.textContent = newScore.toFixed(1) + '%';
+
+      const sign = improvement >= 0 ? '+' : '';
+      improvementDisplay.textContent = sign + improvement.toFixed(1) + '%';
+      improvementDisplay.style.color = improvement >= 0 ? 'var(--success, #22c55e)' : '#ef4444';
+
+      compareResultCard.style.display = 'block';
+      // Refresh the list in the background
+      fetchScans();
+    } catch (err) {
+      alert('Comparison failed: ' + err.message);
+    } finally {
+      compareLoadingOverlay.style.display = 'none';
+    }
   });
 })();

@@ -44,15 +44,15 @@
           </svg>
           <span>Answer Sheets</span>
         </a>
+        <a class="nav-link" data-view="studentAnalytics">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+            <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
+          </svg>
+          <span>Student Analytics</span>
+        </a>
 
       </nav>
-      <div class="sidebar-user">
-        <div class="user-avatar-sm">AD</div>
-        <div class="user-info-sm">
-          <strong>Admin User</strong>
-          <small>admin@school.edu</small>
-        </div>
-      </div>
     </aside>
 
     <!-- ===== MAIN ===== -->
@@ -74,16 +74,12 @@
           <input type="search" placeholder="Search students, classes, reports…" id="globalSearch">
         </div>
         <div class="topbar-actions">
-          <button class="topbar-btn" title="Notifications">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-              <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+          <button class="btn-outline" id="backBtn" onclick="window.history.back()" style="display: flex; align-items: center; gap: 0.5rem;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+              <path d="M19 12H5M12 19l-7-7 7-7"/>
             </svg>
-            <span class="notif-dot"></span>
+            Back
           </button>
-          <div class="topbar-user">
-            <div class="user-avatar-xs">AD</div>
-          </div>
         </div>
       </header>
 
@@ -207,11 +203,6 @@
                     <polyline points="7 10 12 15 17 10" />
                     <line x1="12" y1="15" x2="12" y2="3" />
                   </svg> Export</button>
-                <button class="btn-outline" id="newAnalysisBtn"><svg viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" stroke-width="2">
-                    <polyline points="23 4 23 10 17 10" />
-                    <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
-                  </svg> New</button>
               </div>
             </div>
 
@@ -476,7 +467,6 @@
               </div>
               <div class="header-actions">
                 <button class="btn-outline" id="examExportBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg> Export</button>
-                <button class="btn-outline" id="examNewBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" /></svg> New</button>
               </div>
             </div>
 
@@ -523,6 +513,91 @@
             </div>
           </section>
         </section>
+
+        <!-- ===== STUDENT ANALYTICS ===== -->
+        <section class="view-panel" id="viewStudentAnalytics">
+          <div class="page-header">
+            <div>
+              <h1>Student Analytics History</h1>
+              <p class="page-subtitle">View past scanned reports and upload new ones to track improvement.</p>
+            </div>
+          </div>
+          
+          <div id="studentAnalyticsList">
+            <div class="glass-card full-width">
+              <table style="width:100%; text-align:left; border-collapse:collapse;" id="analyticsTable">
+                <thead>
+                  <tr style="border-bottom:1px solid rgba(255,255,255,0.1);">
+                    <th style="padding:1rem;">Student Name</th>
+                    <th style="padding:1rem;">Class</th>
+                    <th style="padding:1rem;">Roll No.</th>
+                    <th style="padding:1rem;">Date Scanned</th>
+                    <th style="padding:1rem;">Score</th>
+                    <th style="padding:1rem;">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="analyticsTableBody">
+                  <!-- JS populated -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div id="studentAnalyticsDetail" style="display: none;">
+            <button class="btn-outline" id="backToListBtn" style="margin-bottom: 1rem;">← Back to List</button>
+            <div class="glass-card full-width" style="margin-bottom: 1.5rem;">
+              <h2 id="compareStudentName" style="margin-bottom: 0.5rem;">Student Name</h2>
+              <p>Past Score: <strong id="compareOldScore">--</strong>% | Grade: <strong id="compareOldGrade">--</strong></p>
+            </div>
+            
+            <div class="kpi-grid">
+              <!-- Upload new to compare -->
+              <div class="upload-card glass-card" id="compareUploadCard" style="grid-column: span 2;">
+                <form id="compareUploadForm" class="upload-inner">
+                  <div class="dropzone" id="compareDropzone">
+                    <div class="dropzone-icon">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="17 8 12 3 7 8" />
+                        <line x1="12" y1="3" x2="12" y2="15" />
+                      </svg>
+                    </div>
+                    <h4>Upload New Report Card to Compare</h4>
+                    <p>Supported: JPG, PNG, PDF</p>
+                    <input type="file" id="compareFileInput" hidden accept="image/*,.pdf" />
+                  </div>
+                  <div class="upload-footer" id="compareUploadFooter" style="display: none;">
+                    <button type="submit" class="btn-primary" id="compareSubmitBtn">Analyze & Compare</button>
+                  </div>
+                </form>
+                <div class="loading-overlay" id="compareLoadingOverlay" style="display:none;">
+                  <div class="spinner"></div>
+                  <p>AI is analyzing the new document...</p>
+                </div>
+              </div>
+
+              <!-- Comparison Result -->
+              <div class="glass-card" id="compareResultCard" style="display: none; grid-column: span 2;">
+                <h3>Comparison Results</h3>
+                <div style="display: flex; gap: 2rem; margin-top: 1rem;">
+                  <div>
+                    <p style="color:var(--text-muted)">Previous Score</p>
+                    <h2 id="oldScoreDisplay">--%</h2>
+                  </div>
+                  <div>
+                    <p style="color:var(--text-muted)">New Score</p>
+                    <h2 id="newScoreDisplay">--%</h2>
+                  </div>
+                  <div>
+                    <p style="color:var(--text-muted)">Improvement</p>
+                    <h2 id="improvementDisplay" style="color: var(--success)">+0%</h2>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
 
 
       </main>

@@ -2,7 +2,6 @@ package com.walkouttech.ssms.service.predictive;
 
 import com.walkouttech.ssms.request.predictive.BulkPredictionRequestDTO;
 import com.walkouttech.ssms.request.predictive.SinglePredictionRequestDTO;
-import com.walkouttech.ssms.request.predictive.SmsAlertConfigDTO;
 import com.walkouttech.ssms.response.predictive.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -34,10 +33,6 @@ public interface PredictiveAnalysisService {
     ChartDataResponseDTO getClassWisePerformanceChart();
     ChartDataResponseDTO getStudentTrendChart(Long studentId);
 
-    // SMS alerts
-    List<SmsAlertResponseDTO> getTriggeredAlerts();
-    List<SmsAlertResponseDTO> configureAndTriggerAlerts(SmsAlertConfigDTO config);
-
     // CSV template download
     byte[] getCsvTemplate();
 
@@ -46,4 +41,7 @@ public interface PredictiveAnalysisService {
 
     // AI analysis: image, text, CSV, or JSON student data file
     ReportCardVisionResponseDTO analyzeStudentDataFile(MultipartFile file, String docType);
+
+    // Get all stored scanned report cards/exams
+    List<com.walkouttech.ssms.entity.predictive.ReportCardAnalysis> getAllScans();
 }

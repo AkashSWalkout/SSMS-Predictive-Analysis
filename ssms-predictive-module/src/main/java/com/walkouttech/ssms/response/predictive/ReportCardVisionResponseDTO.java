@@ -12,6 +12,10 @@ public class ReportCardVisionResponseDTO {
     private String rollNumber;
     private Double overallPercentage;
     private String overallGrade;
+    private String overallRiskLevel;
+    private Double confidence;
+    private String performanceSummary;
+    private String recommendations;
     private PredictionDashboardResponseDTO dashboardData;
     private ChartDataResponseDTO subjectPerformanceChart;
     private ChartDataResponseDTO attendanceChart;

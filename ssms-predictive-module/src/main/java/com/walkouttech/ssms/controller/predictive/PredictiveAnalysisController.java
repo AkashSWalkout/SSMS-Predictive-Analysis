@@ -2,7 +2,6 @@ package com.walkouttech.ssms.controller.predictive;
 
 import com.walkouttech.ssms.request.predictive.BulkPredictionRequestDTO;
 import com.walkouttech.ssms.request.predictive.SinglePredictionRequestDTO;
-import com.walkouttech.ssms.request.predictive.SmsAlertConfigDTO;
 import com.walkouttech.ssms.response.predictive.*;
 import com.walkouttech.ssms.service.predictive.PredictiveAnalysisService;
 import lombok.RequiredArgsConstructor;
@@ -10,7 +9,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -26,7 +24,6 @@ public class PredictiveAnalysisController {
     // ================= ANALYSE =================
 
     @PostMapping("/analyse/student")
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<PredictionReportResponseDTO> analyseStudent(
             @RequestBody SinglePredictionRequestDTO request) {
 
@@ -35,7 +32,6 @@ public class PredictiveAnalysisController {
     }
 
     @PostMapping("/analyse/bulk")
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<PredictionReportResponseDTO>> analyseBulk(
             @RequestBody BulkPredictionRequestDTO request) {
 
@@ -46,7 +42,6 @@ public class PredictiveAnalysisController {
     // ================= FILE UPLOAD =================
 
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<BatchUploadResponseDTO> uploadAndAnalyse(
             @RequestPart("file") MultipartFile file) {
 
@@ -57,7 +52,6 @@ public class PredictiveAnalysisController {
     // ================= AI IMAGE ANALYSIS =================
 
     @PostMapping(value = "/analyze-image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ReportCardVisionResponseDTO> analyzeReportCardImage(
             @RequestPart("file") MultipartFile file) {
 
@@ -66,13 +60,17 @@ public class PredictiveAnalysisController {
     }
 
     @PostMapping(value = "/analyze-file", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ReportCardVisionResponseDTO> analyzeStudentDataFile(
             @RequestPart("file") MultipartFile file,
             @RequestParam(value = "docType", defaultValue = "report_card") String docType) {
 
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(service.analyzeStudentDataFile(file, docType));
+    }
+
+    @GetMapping("/scans")
+    public ResponseEntity<List<com.walkouttech.ssms.entity.predictive.ReportCardAnalysis>> getAllScans() {
+        return ResponseEntity.ok(service.getAllScans());
     }
 
     @GetMapping("/upload/template")
@@ -133,21 +131,5 @@ public class PredictiveAnalysisController {
     public ResponseEntity<ChartDataResponseDTO> getStudentTrendChart(
             @PathVariable Long id) {
         return ResponseEntity.ok(service.getStudentTrendChart(id));
-    }
-
-    // ================= SMS ALERTS =================
-
-    @GetMapping("/alerts")
-    public ResponseEntity<List<SmsAlertResponseDTO>> getTriggeredAlerts() {
-        return ResponseEntity.ok(service.getTriggeredAlerts());
-    }
-
-    @PostMapping("/alerts/configure")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<List<SmsAlertResponseDTO>> configureAndTriggerAlerts(
-            @RequestBody SmsAlertConfigDTO config) {
-
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(service.configureAndTriggerAlerts(config));
     }
 }

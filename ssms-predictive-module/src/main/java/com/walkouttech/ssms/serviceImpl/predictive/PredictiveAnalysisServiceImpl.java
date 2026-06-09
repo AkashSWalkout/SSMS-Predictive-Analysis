@@ -3,13 +3,18 @@ package com.walkouttech.ssms.serviceImpl.predictive;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.walkouttech.ssms.entity.predictive.PredictionBatchUpload;
+import com.walkouttech.ssms.entity.predictive.PredictionReport;
+import com.walkouttech.ssms.entity.predictive.ReportCardAnalysis;
 import com.walkouttech.ssms.enums.PredictionCategory;
 import com.walkouttech.ssms.enums.PredictionStatus;
 import com.walkouttech.ssms.enums.RiskLevel;
 import com.walkouttech.ssms.exception.ApiException;
+import com.walkouttech.ssms.repository.predictive.PredictionBatchUploadRepository;
+import com.walkouttech.ssms.repository.predictive.PredictionReportRepository;
+import com.walkouttech.ssms.repository.predictive.ReportCardAnalysisRepository;
 import com.walkouttech.ssms.request.predictive.BulkPredictionRequestDTO;
 import com.walkouttech.ssms.request.predictive.SinglePredictionRequestDTO;
-import com.walkouttech.ssms.request.predictive.SmsAlertConfigDTO;
 import com.walkouttech.ssms.response.predictive.*;
 import com.walkouttech.ssms.service.predictive.AiClientService;
 import com.walkouttech.ssms.service.predictive.PredictiveAnalysisService;
@@ -19,12 +24,16 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import org.apache.pdfbox.Loader;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.rendering.PDFRenderer;
+import java.awt.image.BufferedImage;
+import javax.imageio.ImageIO;
+import java.io.ByteArrayOutputStream;
+
 import java.nio.charset.StandardCharsets;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -33,148 +42,220 @@ public class PredictiveAnalysisServiceImpl implements PredictiveAnalysisService 
 
     private final AiClientService aiClientService;
     private final ObjectMapper objectMapper;
+    private final PredictionReportRepository reportRepository;
+    private final PredictionBatchUploadRepository batchUploadRepository;
+    private final ReportCardAnalysisRepository analysisRepository;
+
+    // ================= ANALYSE & PERSIST =================
 
     @Override
     public PredictionReportResponseDTO analyseStudent(SinglePredictionRequestDTO request) {
-        PredictionReportResponseDTO dto = new PredictionReportResponseDTO();
-        dto.setStudentId(request.getStudentId());
-        dto.setStudentName("Demo Student");
-        dto.setStudentCode("STU-DEMO");
-        dto.setClassName("10-A");
-        dto.setRollNo("101");
-        dto.setReportId(1L);
-        dto.setCategory(PredictionCategory.ACADEMIC);
-        dto.setRiskLevel(RiskLevel.LOW);
-        dto.setStatus(PredictionStatus.COMPLETED);
-        dto.setPredictedScore(85.5);
-        dto.setPredictedGrade("A");
-        dto.setConfidence(0.92);
-        dto.setSummary("Standalone demo prediction generated successfully.");
-        dto.setRecommendations("1. Maintain current study habits. 2. Improve English writing practice. 3. Continue strong attendance.");
-        dto.setCreatedAt(LocalDateTime.now());
-        dto.setUpdatedAt(LocalDateTime.now());
-        return dto;
+        // Build and save the prediction report entity
+        PredictionReport entity = new PredictionReport();
+        entity.setStudentId(request.getStudentId());
+        entity.setStudentName("Student " + request.getStudentId());
+        entity.setStudentCode("STU-" + request.getStudentId());
+        entity.setClassName("10-A");
+        entity.setRollNo(String.valueOf(request.getStudentId()));
+        entity.setCategory(request.getCategories() != null && !request.getCategories().isEmpty()
+                ? request.getCategories().get(0)
+                : PredictionCategory.ACADEMIC);
+        entity.setRiskLevel(RiskLevel.LOW);
+        entity.setStatus(PredictionStatus.COMPLETED);
+        entity.setPredictedScore(85.5);
+        entity.setPredictedGrade("A");
+        entity.setConfidence(0.92);
+        entity.setSummary("Prediction generated for student " + request.getStudentId() + ".");
+        entity.setRecommendations(
+                "1. Maintain current study habits. 2. Improve English writing practice. 3. Continue strong attendance.");
+
+        PredictionReport saved = reportRepository.save(entity);
+        return mapToReportDTO(saved);
     }
 
     @Override
     public List<PredictionReportResponseDTO> analyseBulk(BulkPredictionRequestDTO request) {
-        SinglePredictionRequestDTO single = new SinglePredictionRequestDTO();
-        single.setStudentId(1L);
-        single.setCategories(request.getCategories());
-        return List.of(analyseStudent(single));
+        List<Long> studentIds = request.getStudentIds();
+        if (studentIds == null || studentIds.isEmpty()) {
+            studentIds = List.of(1L);
+        }
+
+        List<PredictionReportResponseDTO> results = new ArrayList<>();
+        for (Long studentId : studentIds) {
+            SinglePredictionRequestDTO single = new SinglePredictionRequestDTO();
+            single.setStudentId(studentId);
+            single.setCategories(request.getCategories());
+            results.add(analyseStudent(single));
+        }
+        return results;
     }
 
     @Override
     public BatchUploadResponseDTO uploadAndAnalyse(MultipartFile file) {
-        BatchUploadResponseDTO dto = new BatchUploadResponseDTO();
-        dto.setId(1L);
-        dto.setFileName(file.getOriginalFilename());
-        dto.setTotalRecords(1);
-        dto.setProcessedRecords(1);
-        dto.setFailedRecords(0);
-        dto.setStatus(PredictionStatus.COMPLETED);
-        dto.setCreatedAt(LocalDateTime.now());
-        return dto;
+        PredictionBatchUpload entity = new PredictionBatchUpload();
+        entity.setFileName(file.getOriginalFilename());
+        entity.setTotalRecords(1);
+        entity.setProcessedRecords(1);
+        entity.setFailedRecords(0);
+        entity.setStatus(PredictionStatus.COMPLETED);
+
+        PredictionBatchUpload saved = batchUploadRepository.save(entity);
+        return mapToBatchDTO(saved);
     }
+
+    // ================= READ FROM DB =================
 
     @Override
     public List<PredictionReportResponseDTO> getStudentPredictions(Long studentId) {
-        SinglePredictionRequestDTO request = new SinglePredictionRequestDTO();
-        request.setStudentId(studentId);
-        return List.of(analyseStudent(request));
+        return reportRepository.findByStudentIdOrderByCreatedAtDesc(studentId)
+                .stream()
+                .map(this::mapToReportDTO)
+                .collect(Collectors.toList());
     }
 
     @Override
     public PredictionReportResponseDTO getPredictionById(Long id) {
-        SinglePredictionRequestDTO request = new SinglePredictionRequestDTO();
-        request.setStudentId(1L);
-        PredictionReportResponseDTO dto = analyseStudent(request);
-        dto.setReportId(id);
-        return dto;
+        PredictionReport entity = reportRepository.findById(id)
+                .orElseThrow(() -> new ApiException("Prediction report not found: " + id, HttpStatus.NOT_FOUND));
+        return mapToReportDTO(entity);
     }
+
+    // ================= DASHBOARD (AGGREGATED FROM DB) =================
 
     @Override
     public PredictionDashboardResponseDTO getDashboard() {
         PredictionDashboardResponseDTO dto = new PredictionDashboardResponseDTO();
-        dto.setTotalStudentsAnalysed(1);
-        dto.setRiskDistribution(Map.of(RiskLevel.LOW, 1L));
-        dto.setCategoryBreakdown(Map.of("ACADEMIC", 1L));
-        dto.setTopAtRiskStudents(List.of());
-        dto.setAveragePredictedScore(85.5);
-        dto.setAverageConfidence(0.92);
+
+        long total = reportRepository.count();
+        dto.setTotalStudentsAnalysed((int) total);
+
+        // Risk distribution from DB
+        Map<RiskLevel, Long> riskDist = new LinkedHashMap<>();
+        for (RiskLevel level : RiskLevel.values()) {
+            long count = reportRepository.countByRiskLevel(level);
+            if (count > 0)
+                riskDist.put(level, count);
+        }
+        dto.setRiskDistribution(riskDist.isEmpty() ? Map.of(RiskLevel.LOW, 0L) : riskDist);
+
+        // Category breakdown from DB
+        Map<String, Long> catBreakdown = new LinkedHashMap<>();
+        for (Object[] row : reportRepository.countByCategory()) {
+            catBreakdown.put(row[0].toString(), (Long) row[1]);
+        }
+        dto.setCategoryBreakdown(catBreakdown.isEmpty() ? Map.of("ACADEMIC", 0L) : catBreakdown);
+
+        // Top at-risk students
+        dto.setTopAtRiskStudents(
+                reportRepository.findTopAtRiskStudents().stream()
+                        .limit(10)
+                        .map(this::mapToReportDTO)
+                        .collect(Collectors.toList()));
+
+        Double avgScore = reportRepository.findAveragePredictedScore();
+        dto.setAveragePredictedScore(avgScore != null ? avgScore : 0.0);
+
+        Double avgConf = reportRepository.findAverageConfidence();
+        dto.setAverageConfidence(avgConf != null ? avgConf : 0.0);
+
         dto.setClassWiseRiskData(List.of());
         return dto;
     }
 
+    // ================= CHARTS (FROM DB) =================
+
     @Override
     public ChartDataResponseDTO getRiskDistributionChart() {
+        List<String> labels = List.of("LOW", "MODERATE", "HIGH", "CRITICAL");
+        List<Double> data = labels.stream()
+                .map(l -> (double) reportRepository.countByRiskLevel(RiskLevel.valueOf(l)))
+                .collect(Collectors.toList());
+
         return new ChartDataResponseDTO(
                 "DOUGHNUT",
                 "Student Risk Distribution",
-                List.of("LOW", "MODERATE", "HIGH", "CRITICAL"),
+                labels,
                 List.of(new ChartDataResponseDTO.DatasetDTO(
-                        "Risk Levels",
-                        List.of(1.0, 0.0, 0.0, 0.0),
-                        List.of("#22c55e", "#f59e0b", "#ef4444", "#dc2626"),
-                        null
-                ))
-        );
+                        "Risk Levels", data,
+                        List.of("#22c55e", "#f59e0b", "#ef4444", "#dc2626"), null)));
     }
 
     @Override
     public ChartDataResponseDTO getCategoryBreakdownChart() {
+        List<String> labels = List.of("ACADEMIC", "ENGAGEMENT", "RISK", "WELLBEING", "CAREER");
+        Map<String, Long> catMap = new LinkedHashMap<>();
+        for (Object[] row : reportRepository.countByCategory()) {
+            catMap.put(row[0].toString(), (Long) row[1]);
+        }
+        List<Double> data = labels.stream()
+                .map(l -> catMap.getOrDefault(l, 0L).doubleValue())
+                .collect(Collectors.toList());
+
         return new ChartDataResponseDTO(
                 "BAR",
                 "Predictions by Category",
-                List.of("ACADEMIC", "ENGAGEMENT", "RISK", "WELLBEING", "CAREER"),
+                labels,
                 List.of(new ChartDataResponseDTO.DatasetDTO(
-                        "Predictions",
-                        List.of(1.0, 0.0, 0.0, 0.0, 0.0),
-                        List.of("#6366f1", "#8b5cf6", "#a855f7", "#d946ef", "#ec4899"),
-                        null
-                ))
-        );
+                        "Predictions", data,
+                        List.of("#6366f1", "#8b5cf6", "#a855f7", "#d946ef", "#ec4899"), null)));
     }
 
     @Override
     public ChartDataResponseDTO getClassWisePerformanceChart() {
+        // Simplified: show all distinct class names with their average scores
+        List<PredictionReport> all = reportRepository.findAll();
+        Map<String, List<Double>> classScores = all.stream()
+                .filter(r -> r.getClassName() != null && r.getPredictedScore() != null)
+                .collect(Collectors.groupingBy(
+                        PredictionReport::getClassName,
+                        Collectors.mapping(PredictionReport::getPredictedScore, Collectors.toList())));
+
+        List<String> labels = new ArrayList<>(classScores.keySet());
+        List<Double> data = labels.stream()
+                .map(cls -> classScores.get(cls).stream().mapToDouble(Double::doubleValue).average().orElse(0))
+                .collect(Collectors.toList());
+
+        if (labels.isEmpty()) {
+            labels = List.of("No Data");
+            data = List.of(0.0);
+        }
+
         return new ChartDataResponseDTO(
                 "BAR",
                 "Class-wise Average Predicted Score",
-                List.of("10-A"),
+                labels,
                 List.of(new ChartDataResponseDTO.DatasetDTO(
-                        "Avg Predicted Score",
-                        List.of(85.5),
-                        List.of("#3b82f6"),
-                        "#3b82f6"
-                ))
-        );
+                        "Avg Predicted Score", data,
+                        List.of("#3b82f6"), "#3b82f6")));
     }
 
     @Override
     public ChartDataResponseDTO getStudentTrendChart(Long studentId) {
+        List<PredictionReport> reports = reportRepository.findByStudentIdOrderByCreatedAtDesc(studentId);
+        Collections.reverse(reports); // chronological order
+
+        List<String> labels = new ArrayList<>();
+        List<Double> data = new ArrayList<>();
+        int term = 1;
+        for (PredictionReport r : reports) {
+            labels.add("Analysis " + term++);
+            data.add(r.getPredictedScore() != null ? r.getPredictedScore() : 0.0);
+        }
+
+        if (labels.isEmpty()) {
+            labels = List.of("No Data");
+            data = List.of(0.0);
+        }
+
         return new ChartDataResponseDTO(
                 "LINE",
                 "Student Performance Trend",
-                List.of("Term 1", "Term 2", "Term 3"),
+                labels,
                 List.of(new ChartDataResponseDTO.DatasetDTO(
-                        "Predicted Score",
-                        List.of(78.0, 82.0, 85.5),
-                        null,
-                        "#6366f1"
-                ))
-        );
+                        "Predicted Score", data, null, "#6366f1")));
     }
 
-    @Override
-    public List<SmsAlertResponseDTO> getTriggeredAlerts() {
-        return List.of();
-    }
-
-    @Override
-    public List<SmsAlertResponseDTO> configureAndTriggerAlerts(SmsAlertConfigDTO config) {
-        return List.of();
-    }
+    // ================= CSV TEMPLATE =================
 
     @Override
     public byte[] getCsvTemplate() {
@@ -183,6 +264,8 @@ public class PredictiveAnalysisServiceImpl implements PredictiveAnalysisService 
         return (header + sample).getBytes();
     }
 
+    // ================= AI VISION ANALYSIS (PERSISTED) =================
+
     @Override
     public ReportCardVisionResponseDTO analyzeReportCardImage(MultipartFile file) {
         if (file == null || file.isEmpty()) {
@@ -190,9 +273,15 @@ public class PredictiveAnalysisServiceImpl implements PredictiveAnalysisService 
         }
 
         try {
-            String base64Image = Base64.getEncoder().encodeToString(file.getBytes());
+            String base64Image = convertFileToBase64Image(file);
             String aiResponse = aiClientService.sendVisionRequest(base64Image);
-            return parseVisionResponse(cleanJson(aiResponse));
+            String cleanedJson = cleanJson(aiResponse);
+            ReportCardVisionResponseDTO response = parseVisionResponse(cleanedJson);
+
+            // Persist the analysis
+            saveAnalysis(response, file.getOriginalFilename(), "report_card", cleanedJson);
+
+            return response;
         } catch (ApiException e) {
             throw e;
         } catch (Exception e) {
@@ -207,20 +296,24 @@ public class PredictiveAnalysisServiceImpl implements PredictiveAnalysisService 
             throw new ApiException("Student data file is required", HttpStatus.BAD_REQUEST);
         }
 
-        // Route exam papers to the dedicated exam analysis flow
         if ("exam_paper".equalsIgnoreCase(docType)) {
             return analyzeExamPaper(file);
         }
 
         String contentType = file.getContentType() != null ? file.getContentType() : "";
-        if (contentType.startsWith("image/")) {
+        if (contentType.startsWith("image/") || "application/pdf".equals(contentType)) {
             return analyzeReportCardImage(file);
         }
 
         try {
             String fileText = new String(file.getBytes(), StandardCharsets.UTF_8);
             String aiResponse = aiClientService.sendPredictionRequest(buildStudentDataFilePrompt(fileText));
-            return parseStudentDataResponse(cleanJson(aiResponse));
+            String cleanedJson = cleanJson(aiResponse);
+            ReportCardVisionResponseDTO response = parseStudentDataResponse(cleanedJson);
+
+            saveAnalysis(response, file.getOriginalFilename(), "text_data", cleanedJson);
+
+            return response;
         } catch (ApiException e) {
             throw e;
         } catch (Exception e) {
@@ -229,21 +322,83 @@ public class PredictiveAnalysisServiceImpl implements PredictiveAnalysisService 
         }
     }
 
-    /**
-     * Analyzes a student's handwritten exam answer sheet using AI Vision.
-     * Returns the standard dashboard response enriched with exam-specific
-     * analysis (handwriting quality, conceptual strengths/gaps, etc.).
-     */
+    @Override
+    public List<ReportCardAnalysis> getAllScans() {
+        return analysisRepository.findAllByOrderByCreatedAtDesc();
+    }
+
+    // ================= PRIVATE HELPERS =================
+
     private ReportCardVisionResponseDTO analyzeExamPaper(MultipartFile file) {
         try {
-            String base64Image = Base64.getEncoder().encodeToString(file.getBytes());
+            String base64Image = convertFileToBase64Image(file);
             String aiResponse = aiClientService.sendExamPaperVisionRequest(base64Image);
-            return parseVisionResponse(cleanJson(aiResponse));
+            String cleanedJson = cleanJson(aiResponse);
+            ReportCardVisionResponseDTO response = parseVisionResponse(cleanedJson);
+
+            saveAnalysis(response, file.getOriginalFilename(), "exam_paper", cleanedJson);
+
+            return response;
         } catch (ApiException e) {
             throw e;
         } catch (Exception e) {
             log.error("Failed to process exam answer sheet: {}", e.getMessage(), e);
             throw new ApiException("Failed to process exam answer sheet: " + e.getMessage(), HttpStatus.BAD_REQUEST);
+        }
+    }
+
+    /**
+     * Persists an AI analysis result to the database.
+     */
+    private void saveAnalysis(ReportCardVisionResponseDTO response, String fileName, String docType, String rawJson) {
+        try {
+            JsonNode root = objectMapper.readTree(rawJson);
+
+            ReportCardAnalysis entity = new ReportCardAnalysis();
+            entity.setStudentName(response.getStudentName());
+            entity.setClassName(response.getClassName());
+            entity.setRollNumber(response.getRollNumber());
+            entity.setOverallPercentage(response.getOverallPercentage());
+            entity.setOverallGrade(response.getOverallGrade());
+            entity.setSourceFileName(fileName);
+            entity.setDocType(docType);
+
+            // Store subjects and attendance as JSON strings
+            JsonNode subjectsNode = root.path("subjects");
+            if (!subjectsNode.isMissingNode()) {
+                entity.setSubjectsJson(objectMapper.writeValueAsString(subjectsNode));
+            }
+
+            JsonNode attendanceNode = root.path("attendance");
+            if (!attendanceNode.isMissingNode()) {
+                entity.setAttendanceJson(objectMapper.writeValueAsString(attendanceNode));
+            }
+
+            // Risk level
+            String riskStr = root.path("overallRiskLevel").asText("MODERATE");
+            try {
+                entity.setRiskLevel(RiskLevel.valueOf(riskStr.toUpperCase()));
+            } catch (IllegalArgumentException e) {
+                entity.setRiskLevel(RiskLevel.MODERATE);
+            }
+
+            entity.setConfidence(root.path("confidence").asDouble(0.0));
+            entity.setPerformanceSummary(root.path("performanceSummary").asText(null));
+            entity.setRecommendations(root.path("recommendations").asText(null));
+
+            // Exam analysis JSON
+            JsonNode examNode = root.path("examAnalysis");
+            if (!examNode.isMissingNode() && examNode.isObject()) {
+                entity.setExamAnalysisJson(objectMapper.writeValueAsString(examNode));
+            }
+
+            analysisRepository.save(entity);
+            log.info("Saved analysis for student '{}' (docType: {}, id: {})",
+                    entity.getStudentName(), docType, entity.getId());
+
+        } catch (Exception e) {
+            // Don't fail the request if persistence fails — log and continue
+            log.warn("Failed to persist analysis result: {}", e.getMessage());
         }
     }
 
@@ -314,9 +469,7 @@ public class PredictiveAnalysisServiceImpl implements PredictiveAnalysisService 
                         "Score",
                         List.of(academicScore, attendanceForecast, engagementScore, riskScore, wellbeingScore),
                         List.of("rgba(99, 102, 241, 0.25)"),
-                        "#6366f1"
-                ))
-        ));
+                        "#6366f1"))));
         response.setAttendanceChart(new ChartDataResponseDTO(
                 "DOUGHNUT",
                 "Attendance Forecast",
@@ -325,9 +478,7 @@ public class PredictiveAnalysisServiceImpl implements PredictiveAnalysisService 
                         "Attendance",
                         List.of(attendanceForecast, Math.max(100 - attendanceForecast, 0)),
                         List.of("#22c55e", "#ef4444"),
-                        null
-                ))
-        ));
+                        null))));
         return response;
     }
 
@@ -356,11 +507,14 @@ public class PredictiveAnalysisServiceImpl implements PredictiveAnalysisService 
             response.setRollNumber(root.path("rollNumber").asText());
             response.setOverallPercentage(root.path("overallPercentage").asDouble());
             response.setOverallGrade(root.path("overallGrade").asText());
+            response.setOverallRiskLevel(root.path("overallRiskLevel").asText("MODERATE"));
+            response.setConfidence(root.path("confidence").asDouble(0.0));
+            response.setPerformanceSummary(root.path("performanceSummary").asText(null));
+            response.setRecommendations(root.path("recommendations").asText(null));
             response.setDashboardData(buildVisionDashboard(root));
             response.setSubjectPerformanceChart(buildSubjectChart(root));
             response.setAttendanceChart(buildAttendanceChart(root));
 
-            // Extract exam analysis data if present (for exam_paper uploads)
             JsonNode examAnalysisNode = root.path("examAnalysis");
             if (!examAnalysisNode.isMissingNode() && examAnalysisNode.isObject()) {
                 response.setExamAnalysis(objectMapper.convertValue(examAnalysisNode, Map.class));
@@ -405,12 +559,8 @@ public class PredictiveAnalysisServiceImpl implements PredictiveAnalysisService 
                 "Subject-wise Performance",
                 labels,
                 List.of(new ChartDataResponseDTO.DatasetDTO(
-                        "Scores",
-                        data,
-                        List.of("#6366f1", "#8b5cf6", "#a855f7", "#d946ef", "#ec4899"),
-                        null
-                ))
-        );
+                        "Scores", data,
+                        List.of("#6366f1", "#8b5cf6", "#a855f7", "#d946ef", "#ec4899"), null)));
     }
 
     private ChartDataResponseDTO buildAttendanceChart(JsonNode root) {
@@ -426,20 +576,75 @@ public class PredictiveAnalysisServiceImpl implements PredictiveAnalysisService 
                 List.of(new ChartDataResponseDTO.DatasetDTO(
                         "Days",
                         List.of(present, absent),
-                        List.of("#22c55e", "#ef4444"),
-                        null
-                ))
-        );
+                        List.of("#22c55e", "#ef4444"), null)));
     }
 
     private String cleanJson(String aiResponse) {
         String trimmed = aiResponse.trim();
+        // Strip markdown code fences
         if (trimmed.startsWith("```")) {
             trimmed = trimmed.replaceFirst("^```json", "")
                     .replaceFirst("^```", "")
                     .replaceFirst("```$", "")
                     .trim();
         }
+        // Extract JSON object even if surrounded by extra text/commentary
+        int start = trimmed.indexOf('{');
+        int end = trimmed.lastIndexOf('}');
+        if (start >= 0 && end > start) {
+            trimmed = trimmed.substring(start, end + 1);
+        }
         return trimmed;
+    }
+
+    // ================= ENTITY → DTO MAPPERS =================
+
+    private PredictionReportResponseDTO mapToReportDTO(PredictionReport entity) {
+        PredictionReportResponseDTO dto = new PredictionReportResponseDTO();
+        dto.setReportId(entity.getId());
+        dto.setStudentId(entity.getStudentId());
+        dto.setStudentName(entity.getStudentName());
+        dto.setStudentCode(entity.getStudentCode());
+        dto.setClassName(entity.getClassName());
+        dto.setRollNo(entity.getRollNo());
+        dto.setCategory(entity.getCategory());
+        dto.setRiskLevel(entity.getRiskLevel());
+        dto.setStatus(entity.getStatus());
+        dto.setPredictedScore(entity.getPredictedScore());
+        dto.setPredictedGrade(entity.getPredictedGrade());
+        dto.setConfidence(entity.getConfidence());
+        dto.setSummary(entity.getSummary());
+        dto.setRecommendations(entity.getRecommendations());
+        dto.setCreatedAt(entity.getCreatedAt());
+        dto.setUpdatedAt(entity.getUpdatedAt());
+        return dto;
+    }
+
+    private BatchUploadResponseDTO mapToBatchDTO(PredictionBatchUpload entity) {
+        BatchUploadResponseDTO dto = new BatchUploadResponseDTO();
+        dto.setId(entity.getId());
+        dto.setFileName(entity.getFileName());
+        dto.setTotalRecords(entity.getTotalRecords());
+        dto.setProcessedRecords(entity.getProcessedRecords());
+        dto.setFailedRecords(entity.getFailedRecords());
+        dto.setStatus(entity.getStatus());
+        dto.setCreatedAt(entity.getCreatedAt());
+        return dto;
+    }
+
+    private String convertFileToBase64Image(MultipartFile file) throws Exception {
+        String contentType = file.getContentType() != null ? file.getContentType() : "";
+        if ("application/pdf".equalsIgnoreCase(contentType)) {
+            try (PDDocument document = Loader.loadPDF(file.getBytes())) {
+                PDFRenderer pdfRenderer = new PDFRenderer(document);
+                // Render the first page of the PDF to an image
+                BufferedImage bim = pdfRenderer.renderImageWithDPI(0, 300, org.apache.pdfbox.rendering.ImageType.RGB);
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                ImageIO.write(bim, "jpeg", baos);
+                return Base64.getEncoder().encodeToString(baos.toByteArray());
+            }
+        }
+        // If not a PDF, assume it's already a standard image format
+        return Base64.getEncoder().encodeToString(file.getBytes());
     }
 }

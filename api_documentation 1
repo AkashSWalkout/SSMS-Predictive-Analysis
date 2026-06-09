@@ -1,0 +1,81 @@
+# SSMS Predictive Analysis - API Flow Documentation
+
+This document outlines the end-to-end flow of the **Answer Sheet & Report Card Analysis API** so that both backend and frontend teams understand the architecture, data structures, and the recent PDF/Vision integration.
+
+---
+
+## 1. API Endpoint Overview
+
+**Endpoint:** `POST /api/predictive/analyze-file`
+**Content-Type:** `multipart/form-data`
+
+### Request Parameters:
+*   `file` (File): The uploaded document. Supported formats include Images (`.jpg`, `.png`, `.webp`) and PDFs (`.pdf`).
+*   `docType` (String, Optional): A flag to explicitly route the file to a specific AI pipeline. 
+    *   *Example:* If `docType=exam_paper`, the backend routes it strictly to the handwritten answer sheet evaluator.
+
+---
+
+## 2. Backend Processing Flow
+
+When the frontend hits the `/analyze-file` endpoint, the backend (`PredictiveAnalysisServiceImpl.java`) executes the following sequential steps:
+
+### Step A: File Type Detection & Conversion
+1.  **Format Check**: The system checks the MIME type of the uploaded `MultipartFile`.
+2.  **PDF to Image (NEW)**: If the file is `application/pdf`, the system uses **Apache PDFBox** to intercept the file. It internally renders the first page of the PDF into a high-quality (300 DPI) `BufferedImage`.
+3.  **Base64 Encoding**: The image (or the rendered PDF page) is converted into a Base64 string so it can be securely transmitted over JSON to the AI.
+
+### Step B: AI Routing
+Based on the `docType` or file type, the system calls `AiClientServiceImpl` to select the right AI prompt:
+*   **If `docType=exam_paper`**: It uses the "Exam Evaluator" prompt (instructing the AI to read messy handwriting, find conceptual gaps, and evaluate answer quality without grading it strictly).
+*   **If it's a standard image**: It defaults to the "Report Card" prompt.
+
+### Step C: Vision API Execution
+The backend sends the Base64 image and the selected prompt to the **OpenAI Vision API** (GPT-4o).
+*   *Note: If no API key is set or the server is running offline, it returns a hardcoded mock JSON string so the frontend doesn't break during development.*
+
+### Step D: JSON Sanitization & Parsing
+1.  **`cleanJson()`**: The AI sometimes wraps its JSON in markdown blocks (e.g., ` ```json {...} ``` `) or adds conversational text. The backend strips all non-JSON text, preventing random 500 parsing errors.
+2.  **DTO Mapping**: The clean JSON string is deserialized into `ReportCardVisionResponseDTO`.
+
+### Step E: Database Persistence
+The raw AI output is saved to the local H2/MySQL database via `saveAnalysis()`, allowing historical tracking of scanned documents.
+
+---
+
+## 3. Frontend Implementation Details
+
+The frontend (`AnswerSheetsResult.jsx` / `answerSheetsAPI.js`) expects the response to precisely match the `ReportCardVisionResponseDTO`.
+
+### New AI-Generated Fields (Recently Added):
+The frontend team **must** map the following top-level fields dynamically to display the results correctly. These fields replace old hardcoded dummy values:
+
+```json
+{
+  "studentName": "Alex Johnson",
+  "className": "10-A",
+  "rollNumber": "101",
+  "overallPercentage": 85.5,    // Mapped to the Accuracy Chart
+  "overallGrade": "A",
+  
+  // -- NEWLY EXPOSED FIELDS --
+  "overallRiskLevel": "LOW",    // Options: LOW, MODERATE, HIGH, CRITICAL. Mapped to risk card color.
+  "confidence": 0.92,           // Mapped to the top-right AI Confidence metric (0.0 to 1.0)
+  "performanceSummary": "Alex is performing well...", // Detailed textual analysis
+  "recommendations": "1. Continue with current...",   // Bulleted list of actionable tips
+
+  "subjects": [
+    {"name": "Mathematics", "score": 92, "grade": "A+", "totalMarks": 100}
+  ],
+  "attendance": {
+    "totalDays": 180,
+    "presentDays": 165,
+    "percentage": 91.67
+  }
+}
+```
+
+### Important Notes for the Frontend Developer:
+*   **File Uploads:** You do not need to restrict file uploads to `.jpg` only. The backend now natively supports `.pdf` uploads for answer sheets.
+*   **Variables:** Do not read `confidence` or `academicScore` from the empty `dashboardData` sub-object. Read them directly from the top-level response (`response.confidence`, `response.overallPercentage`).
+*   **Errors:** If you see a `500` error, it is likely an invalid API key on the server, not a frontend payload issue.
