@@ -354,7 +354,18 @@ public class PredictiveAnalysisServiceImpl implements PredictiveAnalysisService 
         try {
             JsonNode root = objectMapper.readTree(rawJson);
 
-            ReportCardAnalysis entity = new ReportCardAnalysis();
+            ReportCardAnalysis entity = null;
+            List<ReportCardAnalysis> existingList = analysisRepository.findByStudentNameOrderByCreatedAtDesc(response.getStudentName());
+            for (ReportCardAnalysis existing : existingList) {
+                if (existing.getSourceFileName() != null && existing.getSourceFileName().equals(fileName)) {
+                    entity = existing;
+                    break;
+                }
+            }
+            
+            if (entity == null) {
+                entity = new ReportCardAnalysis();
+            }
             entity.setStudentName(response.getStudentName());
             entity.setClassName(response.getClassName());
             entity.setRollNumber(response.getRollNumber());
